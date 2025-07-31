@@ -67,9 +67,9 @@ function AppLayout({ children }) {
 
   // Instead of returning early, always return the same structure
   const shouldShowLayout = !isNoLayoutPage || (isProtectedNoLayout && user);
-  const bodyScript = document.querySelector(`script[src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"]`);
+  // const bodyScript = document.querySelector(`script[src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"]`);
 
-  console.log("bodyScript:", bodyScript);
+  // console.log("bodyScript:", bodyScript);
   
   return (
     <>

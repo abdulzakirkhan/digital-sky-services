@@ -152,16 +152,16 @@ useEffect(() => {
     const setupOneSignalTags = async () => {
       try {
         if (!window.OneSignalInstance) {
-          // console.log("OneSignalInstance is NOT ready yet.");
+          console.log("OneSignalInstance is NOT ready yet.");
           return;
         }
 
-        // console.log("OneSignalInstance is available. Setting up listener...");
+        console.log("OneSignalInstance is available. Setting up listener...");
 
         // Check current subscription status immediately
         const currentSubscriptionId = window.OneSignalInstance.User.PushSubscription.id;
         if (currentSubscriptionId) {
-          // console.log("Already subscribed with ID:", currentSubscriptionId);
+          console.log("Already subscribed with ID:", currentSubscriptionId);
           await addUserTag(user?.userid);
         }
 
@@ -169,7 +169,7 @@ useEffect(() => {
         window.OneSignalInstance.User.PushSubscription.addEventListener(
           "change",
           async (subscriptionChange) => {
-            // console.log("PushSubscription change event fired:", subscriptionChange);
+            console.log("PushSubscription change event fired:", subscriptionChange);
             
             if (subscriptionChange.current.id) {
               await addUserTag(user?.userid);
@@ -185,7 +185,7 @@ useEffect(() => {
 
     const addUserTag = async (id) => {
       try {
-        // console.log("Attempting to add userId tag:", id);
+        console.log("Attempting to add userId tag:", id);
 
         if(!id){
           return;
@@ -196,10 +196,10 @@ useEffect(() => {
         
         // Verify the tag was added
         const tags = await window.OneSignalInstance.User.getTags();
-        // console.log("Current OneSignal Tags:", tags);
+        console.log("Current OneSignal Tags:", tags);
         
         if (!tags || tags.userId !== tagValue) {
-          // console.warn("Tag might not have been set correctly. Retrying...");
+          console.warn("Tag might not have been set correctly. Retrying...");
           await new Promise(resolve => setTimeout(resolve, 1000));
           await addUserTag(tagValue);
         }
@@ -215,7 +215,7 @@ useEffect(() => {
   
 
  
-  
+
   return (
     <section className={`mt-20`}>
       <div className="container mx-auto py-8">

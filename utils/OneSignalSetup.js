@@ -50,8 +50,9 @@ export default function OneSignalSetup() {
       window.OneSignalDeferred = window.OneSignalDeferred || [];
       window.OneSignalDeferred.push(async function (OneSignal) {
         await OneSignal.init({
-          appId: '9d8e840d-8835-42f0-aaf9-3a4faf84e2e1',
-          safari_web_id: 'web.onesignal.auto.41b6a3ea-cfe2-480b-805a-97ab17a018f3',
+          // appId: '9d8e840d-8835-42f0-aaf9-3a4faf84e2e1',
+          appId:'81b2d0f8-378a-42b3-bdf1-71adaa381e72',
+          // safari_web_id: 'web.onesignal.auto.41b6a3ea-cfe2-480b-805a-97ab17a018f3',
           notifyButton: {
             enable: true,
           },
