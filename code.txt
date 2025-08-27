@@ -1,0 +1,27 @@
+  // Function to handle form submission
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const amt = Number(amount);
+    if (!Number.isFinite(amt) || amt <= 0) {
+      alert("Enter a valid amount in PKR.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/topups/meezan/create", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ amount: amt }),
+      });
+      if (!res.ok) throw new Error("Failed to create payment.");
+      const data = await res.json();
+      setRedirect(data);
+      if (data.method === "GET") {
+        window.location.href = data.url;
+      }
+    } catch (error) {
+      console.error("Error during payment submission:", error);
+    }
+  };
+
+
+  8931

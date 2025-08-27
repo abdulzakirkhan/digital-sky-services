@@ -1,428 +1,371 @@
 "use client";
-import DropdownDrawerButton from "@/components/DropdownDrawerButton";
-import { appNameCode } from "@/config";
-import {
-  useSignupMutation,
-  useVerifyLoginFeildsMutation,
-} from "@/redux/auth/authApi";
-import { changeLanguage, ChangeUser } from "@/redux/auth/authSlice";
+import { useSignupMutation, useVerifyLoginFeildsMutation } from "@/redux/auth/authApi";
+import { ChangeUser } from "@/redux/auth/authSlice";
 import { ErrorMessage, Field, Form, Formik } from "formik";
 import Image from "next/image";
-import React, { useState, useCallback } from "react";
+import React, { useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import { HiEye, HiEyeOff } from "react-icons/hi";
-import { useSelector } from "react-redux";
 import { useDispatch } from "react-redux";
 import * as Yup from "yup";
-
-// Constants for reusable values
-const FORM_INITIAL_VALUES = {
-  id: "",
-  password: "",
-  rememberMe: false,
-  name: "",
-  email: "",
-  number: "",
-  confirmPassword: "",
-};
-
-const AuthForm = ({ isSignUp, toggleAuthMode, onSubmit, isSubmitting }) => {
+import 'react-phone-number-input/style.css';
+import PhoneInput from 'react-phone-number-input';
+import { isValidPhoneNumber } from 'react-phone-number-input';
+import {  useRouter } from "next/navigation";
+import { useSelector } from "react-redux";
+export default function SignInPage() {
+  const [isSignUp, setIsSignUp] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [passwordVisible, setPasswordVisible] = useState(false);
   const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
+  const router = useRouter();
+  const dispatch = useDispatch();
+  const { referralUserId, language } = useSelector((state) => state.auth) || {};
+  const [verifyLoginFeidls, { isLoading: verifyLoginFeidlsLoading }] =
+    useVerifyLoginFeildsMutation();
 
-  const togglePasswordVisibility = useCallback(() => {
-    setPasswordVisible((prev) => !prev);
-  }, []);
+  const [signUp, { isLoading: signUpIsLoading }] = useSignupMutation();
 
-  const toggleConfirmPasswordVisibility = useCallback(() => {
-    setConfirmPasswordVisible((prev) => !prev);
-  }, []);
-
-  return (
-    <div className="w-full px-8 border-2 shadow-2xl rounded-xl pb-8 flex flex-col justify-center items-center">
-      <div className="flex flex-col justify-center items-center">
-        <div className="!w-64 flex justify-center items-center">
-          <Image
-            src="/login/logo.png"
-            className="w-full h-full"
-            width={384}
-            height={60}
-            alt="Company Logo" style={{
-    width: 'auto', // Add this to maintain ratio when resizing
-    height: 'auto' // Add this if you're using CSS to resize
-  }}
-          />
-        </div>
-
-        <Formik
-          initialValues={FORM_INITIAL_VALUES}
-          validationSchema={getValidationSchema(isSignUp)}
-          onSubmit={onSubmit}
-        >
-          {({ isSubmitting: formikSubmitting }) => (
-            <Form className="w-full">
-              {isSignUp ? (
-                <>
-                  <FormField
-                    name="name"
-                    label="Name"
-                    type="text"
-                    placeholder="User Name"
-                  />
-                  <FormField
-                    name="email"
-                    label="Email"
-                    type="email"
-                    placeholder="abc@gmail.com"
-                  />
-                  <FormField
-                    name="number"
-                    label="Phone Number"
-                    type="text"
-                    placeholder="1234567890"
-                  />
-                </>
-              ) : (
-                <FormField
-                  name="id"
-                  label="User ID"
-                  type="text"
-                  placeholder="User ID"
-                />
-              )}
-
-              <PasswordField
-                name="password"
-                label="Password"
-                placeholder="Enter your password"
-                visible={passwordVisible}
-                toggleVisibility={togglePasswordVisibility}
-              />
-
-              {isSignUp && (
-                <PasswordField
-                  name="confirmPassword"
-                  label="Confirm Password"
-                  placeholder="Confirm your password"
-                  visible={confirmPasswordVisible}
-                  toggleVisibility={toggleConfirmPasswordVisibility}
-                />
-              )}
-
-              {!isSignUp && (
-                <div className="mb-4 flex items-center">
-                  <Field
-                    type="checkbox"
-                    id="rememberMe"
-                    name="rememberMe"
-                    className="h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                  />
-                  <label
-                    htmlFor="rememberMe"
-                    className="ml-2 text-sm text-gray-700"
-                  >
-                    Remember Me
-                  </label>
-                </div>
-              )}
-
-              <SubmitButton
-                isSubmitting={formikSubmitting || isSubmitting}
-                label={isSignUp ? "Sign Up" : "Login"}
-              />
-
-              <FormFooter
-                isSignUp={isSignUp}
-                toggleAuthMode={toggleAuthMode}
-              />
-            </Form>
-          )}
-        </Formik>
-      </div>
-    </div>
-  );
-};
-
-const FormField = ({ name, label, type, placeholder }) => (
-  <div className="mb-2">
-    <label htmlFor={name} className="block text-sm font-medium text-gray-700">
-      {label}
-    </label>
-    <Field
-      type={type}
-      id={name}
-      name={name}
-      placeholder={placeholder}
-      className="px-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-    />
-    <ErrorMessage
-      name={name}
-      component="div"
-      className="text-red-500 text-sm"
-    />
-  </div>
-);
-
-const PasswordField = ({
-  name,
-  label,
-  placeholder,
-  visible,
-  toggleVisibility,
-}) => (
-  <div className="mb-4 relative">
-    <label htmlFor={name} className="block text-sm font-medium text-gray-700">
-      {label}
-    </label>
-    <Field
-      type={visible ? "text" : "password"}
-      id={name}
-      name={name}
-      placeholder={placeholder}
-      className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-    />
-    <ErrorMessage
-      name={name}
-      component="div"
-      className="text-red-500 text-sm"
-    />
-    <button
-      type="button"
-      onClick={toggleVisibility}
-      className="absolute right-3 top-11 transform -translate-y-1/2 text-gray-500"
-      aria-label={visible ? "Hide password" : "Show password"}
-    >
-      {visible ? <HiEyeOff size={24} /> : <HiEye size={24} />}
-    </button>
-  </div>
-);
-
-const SubmitButton = ({ isSubmitting, label }) => (
-  <div className="flex flex-col justify-center items-center py-10">
-    <button
-      type="submit"
-      disabled={isSubmitting}
-      className="bg-primary w-[219px] h-[40px] text-white px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-primary disabled:opacity-50"
-    >
-      {isSubmitting ? "Processing..." : label}
-    </button>
-  </div>
-);
-
-const FormFooter = ({ isSignUp, toggleAuthMode }) => (
-  <div className="pt-2 flex justify-between gap-4">
-    <p className="text-grey text-center">
-      {isSignUp ? "Already have an account?" : "Create New Account"}
-      <button
-        type="button"
-        onClick={toggleAuthMode}
-        className="text-primary font-bold md:ms-2"
-      >
-        {isSignUp ? "Login" : "Signup"}
-      </button>
-    </p>
-    {!isSignUp && (
-      <p className="text-grey text-center">Forgot Password ?</p>
-    )}
-  </div>
-);
-
-const getValidationSchema = (isSignUp) => {
-  const baseSchema = {
-    id: Yup.string().required("User ID is required"),
+  const baseSchema =Yup.object({
+    id: Yup.string().required("User id is required"),
     password: Yup.string()
       .min(5, "Password must be at least 5 characters")
       .required("Password is required"),
     rememberMe: Yup.boolean(),
-  };
+  });
+  const signupSchema = baseSchema.shape({
+    name: Yup.string().required('User name is required'),
+    confirmPassword: Yup.string()
+    .oneOf([Yup.ref('password')], 'Passwords must match')
+    .required('Confirm your password'),
+   phone: Yup.string()
+    .required("Phone Number is Required")
+   .test(
+    'is-valid-phone',
+    'Enter a valid phone number',
+    (v) => !!v && isValidPhoneNumber(v)   // <- require non-empty here too
+  ),
+})
 
-  if (isSignUp) {
-    return Yup.object({
-      ...baseSchema,
-      name: Yup.string().required("Name is required"),
-      email: Yup.string()
-        .email("Invalid email address")
-        .required("Email is required"),
-      number: Yup.string().required("Phone number is required"),
-      confirmPassword: Yup.string()
-        .oneOf([Yup.ref("password"), null], "Passwords must match")
-        .required("Confirm Password is required"),
-    });
-  }
-
-  return Yup.object(baseSchema);
-};
-
-const LanguageChangeModal = ({ show, onConfirm, onCancel }) => {
-  if (!show) return null;
-
-  return (
-    <div className="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
-      <div className="bg-white rounded-lg shadow-lg p-6 w-80 text-center">
-        <h2 className="text-lg font-semibold text-gray-800 mb-4">
-          Do you want to change language?
-        </h2>
-        <div className="flex justify-center gap-4">
-          <button
-            onClick={onConfirm}
-            className="px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600 transition"
-          >
-            Yes
-          </button>
-          <button
-            onClick={onCancel}
-            className="px-4 py-2 bg-gray-300 text-gray-800 rounded hover:bg-gray-400 transition"
-          >
-            No
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default function SignInPage() {
-  const { referralUserId, language } = useSelector((state) => state.auth) || {};
-  const [isSignUp, setIsSignUp] = useState(false);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showLanguageModal, setShowLanguageModal] = useState(false);
-  const [selectedLanguage, setSelectedLanguage] = useState(null);
+  const validationSchema = isSignUp ? signupSchema : baseSchema;
   
-  const dispatch = useDispatch();
-  const [signupUser, { isLoading: signupUserLoading }] = useSignupMutation();
-  const [verifyLoginFeidls, { isLoading: verifyLoginFeidlsLoading }] =
-    useVerifyLoginFeildsMutation();
-
-  const toggleAuthMode = useCallback(() => {
-    setIsSignUp((prev) => !prev);
-  }, []);
-
-  const handleLogin = useCallback(async (values) => {
+  // Login handler
+  const handleLogin = async (values,{resetForm}) => {
+    if(isSignUp){
+      if(values.phone.startsWith("+92")){
+        toast.error("Pakistani contact numbers are not allowed for signup.")
+        return;
+      }
+    }
+    // return;
     setIsSubmitting(true);
-    try {
-      const formData = new FormData();
-      formData.append("userid", values.id);
-      formData.append("secretkey", values.password);
-      formData.append("applicationtype", appNameCode);
-      
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      formData.append("isemail", emailRegex.test(values.id) ? "1" : "0");
+    const formData = new FormData();
 
+    formData.append("userid", values.id);
+    formData.append("secretkey", values.password);
+    formData.append("applicationtype", "dss");
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (emailRegex.test(values.id)) {
+      formData.append("isemail", "1");
+    } else {
+      formData.append("isemail", "0");
+    }
+
+    if(!isSignUp){
       const res = await verifyLoginFeidls(formData);
       const { error, data: respData } = res || {};
-
       if (respData) {
-        const verificationStatus = respData?.result?.userdetail?.[0]?.client_verification_status;
-        if (verificationStatus === "1" || verificationStatus === "0") {
+        if (
+          respData?.result?.userdetail?.[0]?.client_verification_status == "1"
+        ) {
           dispatch(
             ChangeUser({
               ...respData?.result?.userdetail?.[0],
-              isVerified: verificationStatus === "1",
+              isVerified: true,
             })
           );
-        } else {
-          toast.error("Invalid Credentials");
-        }
-      }
-
-      if (error) {
-        toast.error(error.data?.message || "An error occurred");
-      }
-    } catch (err) {
-      toast.error("An unexpected error occurred");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }, [dispatch, verifyLoginFeidls]);
-
-  const handleLanguageChange = useCallback((language) => {
-    setSelectedLanguage(language);
-    setShowLanguageModal(true);
-  }, []);
-
-  const confirmLanguageChange = useCallback(() => {
-    if (selectedLanguage) {
-      dispatch(changeLanguage(selectedLanguage));
-    }
-    setShowLanguageModal(false);
-  }, [dispatch, selectedLanguage]);
-
-  const cancelLanguageChange = useCallback(() => {
-    setShowLanguageModal(false);
-    setSelectedLanguage(null);
-  }, []);
-
-  const handleSignUp =useCallback(async(values) => {
-    setIsSubmitting(true);
-    try {
-    const payload={
-      name:values.name,
-      email: values.email,
-      newPassword: values.password,
-      confirmPassword: values.confirmPassword,
-      phoneNumber:values.number,
-      appNameCode:appNameCode,
-      referById:referralUserId,
-    }
-
-      const res = await signupUser(payload);
-      const { error, data: respData } = res || {};
-
-      if (respData) {
-        const verificationStatus = respData?.result?.userdetail?.[0]?.client_verification_status;
-        if (verificationStatus === "1" || verificationStatus === "0") {
+        } else if (
+          respData?.result?.userdetail?.[0]?.client_verification_status == "0"
+        )
           dispatch(
             ChangeUser({
               ...respData?.result?.userdetail?.[0],
-              isVerified: verificationStatus === "1",
+              isVerified: false,
             })
           );
-        } else {
-          toast.error("Invalid Credentials");
-        }
+        else toast.error("Invalid Credentials");
       }
-
       if (error) {
-        toast.error(error.data?.message || "An error occurred");
+        toast.error(error || "error");
       }
-    } catch (err) {
-      toast.error("An unexpected error occurred");
-    } finally {
-      setIsSubmitting(false);
+    } else {
+      const payloads = {
+        phoneNumber: values.phone,
+        email: values.id,
+        name: values.name,
+        referById: referralUserId,
+        appNameCode: "dss",
+        newPassword: values.password,
+        confirmPassword: values.confirmPassword,
+      };
+      const response = await signUp(payloads);
+      const {error,data: resData} = response || {};
+      if(resData?.result == "Email Already Exist"){
+        toast.error(resData?.result || "User Already Exist")
+        return
+      }
+      if(resData?.result == "Pakistani contact numbers are not allowed for signup."){
+        toast.error(resData?.result || "Pakistani contact numbers are not allowed for signup.")
+        return
+      }
+      if(resData){
+        resetForm();
+        toast.success("Sign up successful.");
+        router.push("/sign-in");
+        setIsSignUp(false);
+      }
     }
-  }, [dispatch, signupUser])
+  };
+
   return (
     <>
-      <section className="bg-[#FFFFFF] relative">
-        <div className="container mx-auto py-14">
+      <section className="bg-[#FFFFFF]">
+        {/* Login/Signup Form */}
+        <div className="container mx-auto py-8">
           <div className="grid md:grid-cols-2 justify-center items-center">
             <div className="w-full animate-slowBounce">
-              <Image 
-                src="/login/login.svg" 
-                width={600} 
-                height={589} 
-                alt="Login Illustration"
-                priority 
-              />
+              <Image src="/login/login.svg" width={600} height={589} alt="" />
             </div>
 
-            <AuthForm
-              isSignUp={isSignUp}
-              toggleAuthMode={toggleAuthMode}
-              onSubmit={isSignUp ? handleSignUp : handleLogin}
-              isSubmitting={isSubmitting}
-            />
+            <div className="w-full px-8 border-2 shadow-2xl rounded-xl pb-8 flex flex-col justify-center items-center">
+              <div className="flex flex-col justify-center items-center">
+                <div className="!w-[430px] flex justify-center items-center">
+                  <img
+                    src="/login/logo.png"
+                    className="w-full h-full"
+                    // width={384}
+                    // height={60}
+                    alt="Company Logo"
+                  />
+                </div>
+
+                <Formik
+                 enableReinitialize
+                  initialValues={{
+                    id: "",
+                    password: "",
+                    rememberMe: false,
+                    ...(isSignUp && { name: '', confirmPassword: '', phone: '' }),
+                  }}
+                  validationSchema={validationSchema}
+                  onSubmit={handleLogin}
+                >
+                  {({ isSubmitting, values, errors, touched, setFieldValue }) => (
+                    <Form className="w-full">
+
+                      {/* Name */}
+
+                      {isSignUp && (
+                        <div className="mb-2">
+                        <label
+                          htmlFor="name"
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          User name
+                        </label>
+                        <Field
+                          type="text"
+                          id="name"
+                          name="name"
+                          placeholder="User name"
+                          className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <ErrorMessage
+                          name="name"
+                          component="div"
+                          className="text-red text-sm"
+                        />
+                        </div>
+                      )}
+                      {isSignUp && (
+                        <div className="mb-4">
+                          <label htmlFor="phone" className="block text-sm font-medium text-gray-700">
+                            <pre>Phone number</pre>
+                          </label>
+                          <PhoneInput
+                            id="phone"
+                            name="phone"
+                            international                 // shows country selector + codes
+                            defaultCountry="PK"           // pick a sensible default for your users
+                            value={values.phone}
+                            onChange={(val) => setFieldValue('phone', val)}
+                            onBlur={() => setFieldTouched('phone', true)} 
+                          />
+                          <ErrorMessage
+                            name="phone"
+                            component="div"
+                            className="text-red text-sm"
+                          />
+                        </div>
+                      )}
+
+
+
+                      {/* Email Field */}
+                      <div className="mb-4">
+                        <label
+                          htmlFor="email"
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          {isSignUp ? "Email" : "Email or ID"}
+                        </label>
+                        <Field
+                          type="text"
+                          id="id"
+                          name="id"
+                          placeholder="User ID"
+                          className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <ErrorMessage
+                          name="id"
+                          component="div"
+                          className="text-red text-sm"
+                        />
+                      </div>
+
+                      {/* Password Field */}
+                      <div className="mb-4 relative">
+                        <label
+                          htmlFor="password"
+                          className="block text-sm font-medium text-gray-700"
+                        >
+                          Password
+                        </label>
+                        <Field
+                          type={passwordVisible ? "text" : "password"}
+                          id="password"
+                          name="password"
+                          placeholder="Enter your password"
+                          className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                        />
+                        <ErrorMessage
+                          name="password"
+                          component="div"
+                          className="text-red text-sm"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => setPasswordVisible(!passwordVisible)}
+                          className="absolute right-3 top-11 transform -translate-y-1/2 text-gray-500"
+                        >
+                          {passwordVisible ? (
+                            <HiEyeOff size={24} />
+                          ) : (
+                            <HiEye size={24} />
+                          )}
+                        </button>
+                      </div>
+
+                      {/* Confirm Password Field */}
+                      {isSignUp && (
+                        <div className="mb-4 relative">
+                          <label
+                            htmlFor="confirmPassword"
+                            className="block text-sm font-medium text-gray-700"
+                          >
+                            Confirm Password
+                          </label>
+                          <Field
+                            type={confirmPasswordVisible ? "text" : "password"}
+                            id="confirmPassword"
+                            name="confirmPassword"
+                            placeholder="Confirm your password"
+                            className="mt-1 px-4 py-2 w-full border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                          />
+                          <ErrorMessage
+                            name="confirmPassword"
+                            component="div"
+                            className="text-red text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setConfirmPasswordVisible(!confirmPasswordVisible)
+                            }
+                            className="absolute right-3 top-11 transform -translate-y-1/2 text-gray-500"
+                          >
+                            {confirmPasswordVisible ? (
+                              <HiEyeOff size={24} />
+                            ) : (
+                              <HiEye size={24} />
+                            )}
+                          </button>
+                        </div>
+                      )}
+
+                      {/* Remember Me Checkbox */}
+                      {!isSignUp && (
+                        <div className="mb-4 flex items-center">
+                        <Field
+                          type="checkbox"
+                          id="rememberMe"
+                          name="rememberMe"
+                          className="h-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                        />
+                        <label
+                          htmlFor="rememberMe"
+                          className="ml-2 text-sm text-gray-700"
+                        >
+                          Remember Me
+                        </label>
+                      </div>
+                      )}
+
+                      {/* Submit Button */}
+                      <div className="flex flex-col justify-center items-center py-10">
+                        <button
+                          type="submit"
+                          disabled={isSubmitting}
+                          className="bg-primary w-[219px] h-[40px] text-white px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                        >
+                          {isSubmitting
+                            ? "Processing..."
+                            : isSignUp
+                            ? "Sign Up"
+                            : "Login"}
+                        </button>
+                      </div>
+
+                      {/* Form Footer */}
+                      <div className="py-3 flex justify-between gap-4">
+                        <p className="text-grey p3 text-center">
+                          {isSignUp
+                            ? "Already have an account?"
+                            : "Create New Account"}
+                          <button
+                            type="button"
+                            onClick={() => setIsSignUp(!isSignUp)}
+                            className="text-primary font-bold md:ms-2"
+                          >
+                            {isSignUp ? "Login" : "Signup"}
+                          </button>
+                        </p>
+                        {!isSignUp && (
+                          <p className="text-grey p3 text-center">
+                            Forgot Password ?
+                          </p>
+                        )}
+                      </div>
+                    </Form>
+                  )}
+                </Formik>
+              </div>
+            </div>
           </div>
         </div>
       </section>
 
       <Toaster position="top-right" reverseOrder={false} />
-
-      <LanguageChangeModal
-        show={showLanguageModal}
-        onConfirm={confirmLanguageChange}
-        onCancel={cancelLanguageChange}
-      />
     </>
   );
 }

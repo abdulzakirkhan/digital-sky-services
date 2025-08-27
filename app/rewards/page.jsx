@@ -20,6 +20,8 @@ import {
 } from "@/redux/rewards/rewardsApi";
 import { APP_NAMES } from "@/config/constants";
 import dynamic from "next/dynamic";
+import { webAppUrl } from "@/config";
+import Loader from "@/components/Loader";
 const Page = () => {
   const { user } = useSelector((state) => state.auth) || {};
   const [showInviteForm, setShowInviteForm] = useState(false);
@@ -97,7 +99,7 @@ const Page = () => {
           contentDescription: "Install this app using my referral link.",
           contentMetadata: { customMetadata: { userId: user?.userid } },
         };
-        const linkData = { data, feature: "referral", channel: "web", $fallback_url: "https://www.hybridresearchcenter.com/" };
+        const linkData = { data, feature: "referral", channel: "web", $fallback_url: webAppUrl };
 
         branchLib.link(linkData, (err, url) => {
           if (!err && url) setLink(url);
@@ -177,6 +179,13 @@ const Page = () => {
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
+
+  
+
+  if(rewardsHistoryLoading){
+    return <Loader />;
+  }
+
   return (
     <section className="py-12 bg-gray-50 min-h-screen mt-12">
       <div className="md:max-w-6xl mx-auto md:px-4 lg:px-8">
@@ -237,7 +246,13 @@ const Page = () => {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-200">
-                    {rewardsHistory?.map((reward, index) => (
+                    {rewardsHistory?.result == "No Data Found" ? (
+                      <tr>
+                        <td colSpan={3} className="text-center py-4 text-gray-500">
+                          <p className="mt-16 text-2xl">{rewardsHistory?.result}</p>
+                        </td>
+                      </tr>
+                     ) : rewardsHistory.map((reward, index) => (
                       <tr key={index} className="hover:bg-gray-50">
                         <td className="px-6 py-4 text-sm text-gray-900">
                           {reward?.addedts}
@@ -253,11 +268,6 @@ const Page = () => {
                   </tbody>
                 </table>
               </div>
-              {rewardsHistory.length === 0 && (
-                <div className="text-center py-8">
-                  <p className="text-gray-500">No rewards earned yet</p>
-                </div>
-              )}
             </div>
           </div>
         ) : (
@@ -277,10 +287,7 @@ const Page = () => {
                 width={240}
                 height={160}
                 alt="Invite friends"
-                className="mx-auto" style={{
-    width: 'auto', // Add this to maintain ratio when resizing
-    height: 'auto' // Add this if you're using CSS to resize
-  }}
+                className="mx-auto"
               />
               <h2 className="text-3xl font-bold text-gray-900 mt-6">
                 Invite Friends & Earn 10
@@ -312,7 +319,6 @@ const Page = () => {
               <div className="mt-8 flex flex-wrap justify-center gap-2 md:space-x-4">
                 <button
                   onClick={shareWithWhatsapp}
-                  // href="https://api.whatsapp.com/send?text=https://hybridresearchcenter.app.link/u0Ck3qhUNOb"
                   target="_blank"
                   className="p-2 rounded-full bg-green-100 hover:bg-green-200 transition-colors"
                 >
@@ -320,7 +326,6 @@ const Page = () => {
                 </button>
                 <button
                   onClick={shareWithInstagram}
-                  // href="https://www.instagram.com/sharer.php?u=https://hybridresearchcenter.app.link/u0Ck3qhUNOb"
                   target="_blank"
                   className="p-2 rounded-full bg-pink-100 hover:bg-pink-200 transition-colors"
                 >
@@ -328,7 +333,6 @@ const Page = () => {
                 </button>
                 <button
                   onClick={shareWithFacebook}
-                  // href="https://www.facebook.com/sharer/sharer.php?u=https://hybridresearchcenter.app.link/u0Ck3qhUNOb"
                   target="_blank"
                   className="p-2 rounded-full bg-blue-100 hover:bg-blue-200 transition-colors"
                 >
@@ -336,7 +340,6 @@ const Page = () => {
                 </button>
                 <button
                   onClick={shareWithX}
-                  // href="https://twitter.com/intent/tweet?url=https://hybridresearchcenter.app.link/u0Ck3qhUNOb"
                   target="_blank"
                   className="p-2 rounded-full bg-sky-100 hover:bg-sky-200 transition-colors"
                 >

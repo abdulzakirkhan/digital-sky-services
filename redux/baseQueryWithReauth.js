@@ -11,7 +11,7 @@ export const baseQueryWithReauth = async (args, api, extraOptions) => {
     prepareHeaders: (headers, { getState }) => {
       // console.log("APi Call")
 
-      const token = getState().auth.user?.token;
+      const token = getState().auth.user?.authorization_token;
       // console.log("Token in baseQueryWithReauth:", getState().auth?.user?.token);
       if (token) {
         headers.set('Authorization', `${token}`);

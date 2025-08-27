@@ -9,10 +9,11 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useSelector } from "react-redux";
 import { useGetProfileQuery } from "@/redux/user/profileApi";
-import { baseUrl } from "@/config";
 import { useDispatch } from "react-redux";
 import { logOut } from "@/redux/auth/authSlice";
 import { api } from "@/redux/service";
+import { BASE_URL } from "@/constants/apiUrls";
+
 
 const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const user = useSelector((state) => state.auth?.user);
@@ -23,17 +24,26 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const [showPopUp, setShowPopUp] = useState(false);
   const pathname = usePathname();
   const router = useRouter();
+  const Base_URL = process.env.NEXT_BASE_URL;
 
+  const toAbsoluteUrl = (url) => {
+    if (!url) return "/header/profile.svg";
+
+    // already absolute?
+    if (/^https?:\/\//i.test(url)) return url;
+
+    // prepend https:// if backend gives bare domain/path
+    return `https://${url.replace(/^\/+/, "")}`;
+  };
   const [userData, setUserData] = useState({
-    profileImage: profileData?.path
-      ? "https://staging.portalteam.org" + profileData?.path
-      : "/header/profile.svg",
+    // profileImage: profileData?.path ? toAbsoluteUrl(profileData?.path) : "/header/profile.svg",
+    profileImage: profileData?.path ? BASE_URL + profileData?.path : "/header/profile.svg",
     name: profileData?.name || "Hello, User",
   });
 
   const alwaysVisibleItems = [
     { title: "Dashboard", path: "/dashboard", icon: "/dashboard.png" },
-    { title: "Chat", path: "/app-chatt", icon: "/icons/sidebar/chatt.svg" },
+    
     {
       title: "Terms & Conditions",
       path: "/terms-conditions",
@@ -49,6 +59,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   ];
 
   const verifiedOnlyItems = [
+    { title: "Chat", path: "/app-chatt", icon: "/icons/sidebar/chatt.svg" },
     { title: "Orders", path: "/orders", icon: "/icons/sidebar/orders.svg" },
     {
       title: "Payment History",
@@ -71,7 +82,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   const handleClick = () => setShowPopUp(!showPopUp);
   const dispatch = useDispatch();
   const LogOutUser = () => {
-    console.log("User logged out");
+    // console.log("User logged out");
     dispatch(logOut()); // Clear redux state
     dispatch(api.util.resetApiState());
     router.push("/sign-in"); // Redirect to login
@@ -86,12 +97,15 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
   useEffect(() => {
     if (profileData) {
       const updatedUser = {
-        profileImage: "https://staging.portalteam.org" + profileData?.path,
+        // profileImage: profileData?.filepath ? toAbsoluteUrl(profileData?.filepath) : "/header/profile.svg",
+        profileImage: profileData?.filepath ? BASE_URL + profileData?.filepath : "/header/profile.svg",
         name: profileData?.name,
       };
       setUserData(updatedUser);
     }
   }, [profileData]);
+
+  
 
   return (
     <div
@@ -114,7 +128,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
       {!isCollapsed && (
         <div className="text-center p-3 profile">
           <Image
-            src={userData?.profileImage}
+            src={userData?.profileImage ? userData?.profileImage : "/header/profile.svg"}
             alt="Profile"
             width={80}
             height={80}
@@ -147,7 +161,7 @@ const Sidebar = ({ isCollapsed, setIsCollapsed }) => {
                 width={18}
                 height={18}
                 alt={item.title}
-                className="mr-4" 
+                className="mr-4"
               />
               {!isCollapsed && <span>{item.title}</span>}
             </Link>

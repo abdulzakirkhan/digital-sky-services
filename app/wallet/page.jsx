@@ -226,7 +226,7 @@ const handleSubmit = async (e) => {
 
   const currencySymbol = getCurrencySymbol(getCurrencyFromCode(walletAmount?.currency));
 
-  // console.log("currencySymbol",currencySymbol);
+  
 
  
   return (
@@ -593,6 +593,7 @@ const handleSubmit = async (e) => {
                             With Bank Transfer
                           </Link>
                           <button
+                            disabled
                             onClick={() => setIsPaymentGateway(true)}
                             className="bg-primary text-white px-3 py-2 rounded-lg"
                           >

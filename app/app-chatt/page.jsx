@@ -5,7 +5,6 @@ import {
   useInsertClientMesageThroughAppMutation,
   useSeenAllMessagesMutation,
 } from "@/redux/chat/chatApi";
-
 import { useGetUserCurrencyAndCountryQuery } from "@/redux/order/ordersApi";
 import pusher from "@/utils/pusher";
 import { useRouter } from "next/router";
@@ -22,14 +21,12 @@ import { format, isToday, isYesterday, parseISO } from "date-fns";
 import voiceButtonAnimation from "../../constants/voiceButtonAnimation.json";
 import Lottie from "lottie-react";
 import { AiOutlineAudio } from "react-icons/ai";
-import { baseUrl } from "@/config";
-
-import { Document, Page, pdfjs } from "react-pdf";
-
-pdfjs.GlobalWorkerOptions.workerSrc = "/pdf.worker.js";
 
 import mammoth from "mammoth";
 import { DateTime } from "luxon";
+import { BASE_URL } from "@/constants/apiUrls";
+import dynamic from "next/dynamic";
+import PdfViewer from "@/components/PdfViewer";
 const ChatPage = () => {
   const user = useSelector((state) => state.auth?.user);
   const [page, setPage] = useState(0);
@@ -70,21 +67,45 @@ const ChatPage = () => {
   const chunksRef = useRef([]);
 
   // Sort by date first, then time (ascending = oldest to newest)
-  const sortedMessages = [...messages].sort((a, b) => {
-    const aDateTime = new Date(`${a.date}T${a.time}`);
-    const bDateTime = new Date(`${b.date}T${b.time}`);
-    return aDateTime - bDateTime; // ascending
+  // const sortedMessages = [...messages]?.sort((a, b) => {
+  //   const aDateTime = new Date(`${a.date}T${a.time}`);
+  //   const bDateTime = new Date(`${b.date}T${b.time}`);
+  //   return aDateTime - bDateTime; // ascending
+  // });
+  // const groupedMessages = sortedMessages?.reduce((groups, message) => {
+  //   const parsed = parseISO(message?.date); // Ensure it's a valid Date
+  //   const dateKey = format(parsed, "yyyy-MM-dd"); // Normalize to 'YYYY-MM-DD'
+
+  //   if (!groups[dateKey]) groups[dateKey] = [];
+  //   groups[dateKey].push(message);
+
+  //   return groups;
+  // }, {});
+
+  const sortedMessages = [...(messages || [])] // Handle undefined/null
+  .sort((a, b) => {
+    try {
+      const aDateTime = new Date(`${a.date}T${a.time}`).getTime();
+      const bDateTime = new Date(`${b.date}T${b.time}`).getTime();
+      return aDateTime - bDateTime; // ascending
+    } catch (e) {
+      return 0; // fallback if date parsing fails
+    }
   });
+
   const groupedMessages = sortedMessages.reduce((groups, message) => {
-    const parsed = parseISO(message.date); // Ensure it's a valid Date
-    const dateKey = format(parsed, "yyyy-MM-dd"); // Normalize to 'YYYY-MM-DD'
-
-    if (!groups[dateKey]) groups[dateKey] = [];
-    groups[dateKey].push(message);
-
-    return groups;
-  }, {});
-
+    if (!message?.date) return groups; // skip invalid messages
+    
+    try {
+      const dateKey = format(parseISO(message.date), "yyyy-MM-dd");
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push(message);
+    } catch (e) {
+      // handle date parsing errors silently or log them
+  }
+  
+  return groups;
+}, {});
   // Handle new message input
   const handleMessageChange = (e) => {
     setMessage(e.target.value);
@@ -109,7 +130,7 @@ const [docxHtml, setDocxHtml] = useState("");
     const fileArray = Array.from(files);
 
     // Generate preview for all files
-    const previewArray = fileArray.map((file) => ({
+    const previewArray = fileArray?.map((file) => ({
       uri: URL.createObjectURL(file),
       type: file.type,
       name: file.name,
@@ -135,7 +156,7 @@ const [docxHtml, setDocxHtml] = useState("");
 
 
     if (imageFiles.length > 0) {
-      const imagePreview = imageFiles.map((file) => ({
+      const imagePreview = imageFiles?.map((file) => ({
         uri: URL.createObjectURL(file),
         type: file.type,
         name: file.name,
@@ -364,25 +385,6 @@ useEffect(() => {
     return /\.pdf$/i.test(value.trim());
   };
 
-  const getAudioMimeType = (filename) => {
-    if (!filename) return "audio/mpeg";
-    const ext = filename.split(".").pop()?.toLowerCase();
-    switch (ext) {
-      case "mp3":
-        return "audio/mpeg";
-      case "wav":
-        return "audio/wav";
-      case "m4a":
-        return "audio/mp4";
-      case "ogg":
-        return "audio/ogg";
-      case "webm":
-        return "audio/webm";
-      default:
-        return "audio/mpeg";
-    }
-  };
-
 
   const isDocxFile = (value) => {
   if (!value || typeof value !== "string") return false;
@@ -402,10 +404,23 @@ useEffect(() => {
       }
     }
   }
-  
+
+
+const entries = Object.entries(groupedMessages ?? {});
+
+const hasChats = entries.some(([, msgs]) => (msgs?.length ?? 0) > 0);
+
+const toAbsolute = (url) => {
+  if (!url) return "";
+  if (/^https?:\/\//i.test(url)) return url;             // already absolute
+  return `https://${url.replace(/^\/+/, "")}`;           // add protocol
+};
+
+
+
   return (
     <>
-      <section className="mt-12 border">
+      <section className="mt-14 border">
         {/* Header */}
         <div className="bg-[#4B67DB] w-full z-10 border mx-0 m-0">
           <div className="container mx-auto px-6 py-2">
@@ -421,13 +436,19 @@ useEffect(() => {
             onScroll={(e) => onScrollEnd(e)}
             id="chatt"
           >
-            {Object.entries(groupedMessages).map(([date, msgs]) => {
-              const parsedDate = parseISO(date); // "2025-07-08" -> Date object
+            
+
+            {!hasChats ? (
+              <div className="py-8 text-center text-gray-500">No chat found</div>
+            ) : (
+              entries.map(([date, msgs]) => {
+                const parsedDate = parseISO(date); // "2025-07-08" -> Date object
               const displayDate = isToday(parsedDate)
                 ? "Today"
                 : isYesterday(parsedDate)
                 ? "Yesterday"
                 : format(parsedDate, "dd MMM yyyy");
+
 
               return (
                 <div key={date + Math.random()}>
@@ -439,16 +460,18 @@ useEffect(() => {
                   </div>
 
                   {/* 💬 Messages */}
-                  {msgs.map((msg, index) => {
-                    const fileUrl = `${baseUrl}/newchatfilesuploads/${msg?.msgfile}`;
+                  {msgs?.map((msg, index) => {
+                    const fileUrl = `${BASE_URL}/newchatfilesuploads/${msg?.msgfile}`;
+                    const hrefd=toAbsolute(fileUrl)
                     const isAudio = isAudioFile(msg?.msgfile);
                     const isImage = isPngFile(msg?.msgfile);
 
                     const isPdf = msg?.msgfile !=="" ? isPdfFile(msg?.msgfile) : false;
                     const isDox = msg?.msgfile !=="" ? isDocxFile(msg?.msgfile) : false;
                     const msgtime = getFormatedTime(msg?.time)
+                    console.log("fileUrl :",isPdf ? fileUrl : "") 
                     return (
-                      <div key={msg?.id} className="mb-4 p-4">
+                      <div key={index} className="mb-4 p-4">
                         <div
                           className={`flex ${
                             msg?.messagefrom == user?.userid
@@ -469,7 +492,7 @@ useEffect(() => {
                               <img
                                 src={fileUrl}
                                 alt="chat-img"
-                                className="max-w-xs rounded-md"
+                                className="max-w-xs min-w-44 rounded-md max-h-52"
                               />
                             ) : isAudio ? (
                               <audio
@@ -485,15 +508,20 @@ useEffect(() => {
                                 <div className="flex justify-between px-4 items-center mb-2">
                                   <span className="font-medium text-gray-600">PDF Preview</span>
                                   <a
-                                    href={fileUrl}
-                                    download
+                                   target="_blank"
+                                    href={hrefd}
+                                    // download
+                                    rel="noreferrer"
                                     className="text-blue-500 hover:underline text-sm"
                                   >
                                     Download PDF
                                   </a>
                                 </div>
 
-                                <Document file={fileUrl}>
+                                <PdfViewer url={hrefd} />
+
+                                {/* <Document file={hrefd} onLoadError={(e) => console.error('onLoadError:', e)}
+                                  onSourceError={(e) => console.error('onSourceError:', e)}>
                                   <Page
                                     pageNumber={1}
                                     width={400}
@@ -501,12 +529,13 @@ useEffect(() => {
                                     renderTextLayer={false}
                                     renderAnnotationLayer={false}
                                   />
-                                </Document>
+                                </Document> */}
                               </div>
                             ) : isDox ? <div className="w-full">
                               <div className="flex justify-between px-4 items-center mb-2">
                                   <span className="font-medium text-gray-600">Docx Preview</span>
                                   <a
+                                  target="_blank"
                                     href={fileUrl}
                                     download
                                     className="text-blue-500 hover:underline text-sm"
@@ -538,7 +567,8 @@ useEffect(() => {
                   })}
                 </div>
               );
-            })}
+              })
+            )}
 
             <div ref={bottomRef} />
           </div>
@@ -603,7 +633,7 @@ useEffect(() => {
                   selectedImage?.length === 1 ? "w-1/3" : "w-1/2"
                 } h-44 -top-52 left-[20%] bg-white p-2 rounded-lg shadow-lg`}
               >
-                {selectedImage.map((img, index) => (
+                {selectedImage?.map((img, index) => (
                   <div
                     className={`shadow-lg relative border-2 border-gray-300 rounded-md ${
                       selectedImage.length === 1 ? "w-1/2 h-full" : "w-32 h-16"
@@ -628,7 +658,7 @@ useEffect(() => {
               </div>
             )}
 
-            {selectPdf.map((file, i) => (
+            {selectPdf?.map((file, i) => (
               <div className="absolute bottom-20 left-[20%]">
                 <div className="text-end">
                   <button

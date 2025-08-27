@@ -98,6 +98,9 @@ const Page = () => {
     }
   }, [profileData]);
 
+  console.log("profileData",profileData)
+
+
 
   return (
     <>
@@ -247,18 +250,14 @@ const Page = () => {
                     Phone Number
                   </label>
                   <PhoneInput
+
+                    disabled
                     international
                     defaultCountry="US"
                     value={value}
                     onChange={setValue}
                     className="w-full custInput p-3 border border-gray-300 rounded-md"
                   />
-                  {/* Optional: Add validation message if needed */}
-                  {!value && (
-                    <div className="text-red-500 text-sm">
-                      Phone number is required
-                    </div>
-                  )}
                 </motion.div>
 
                 {/* Submit Button */}

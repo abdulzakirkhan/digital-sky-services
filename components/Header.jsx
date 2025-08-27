@@ -1,7 +1,9 @@
 "use client";
 
+import { webAppUrl } from "@/config";
 import { APP_NAMES } from "@/config/constants";
 import { getCurrency, getCurrencyNameFromPhone } from "@/config/helpers";
+import { BASE_URL } from "@/constants/apiUrls";
 import { logOut } from "@/redux/auth/authSlice";
 import { useGetAllNotificationsQuery, useSeenAllNotificationsMutation, useSeenSingleNotificationMutation } from "@/redux/notifications/notificationsApi";
 import { useGetUserCurrencyAndCountryQuery } from "@/redux/order/ordersApi";
@@ -62,10 +64,23 @@ const Header = ({ profileName, profileImage }) => {
       : getCurrency(getCurrencyNameFromPhone(user?.user_contact_no)),
   });
 
+
+
+
+  const toAbsoluteUrl = (url) => {
+    if (!url) return "/header/profile.svg";
+
+    // already absolute?
+    if (/^https?:\/\//i.test(url)) return url;
+
+    // prepend https:// if backend gives bare domain/path
+    return `https://${url.replace(/^\/+/, "")}`;
+  };
+
+
   const [userData, setUserData] = useState({
-    profileImage: profileData?.path
-      ? "https://staging.portalteam.org" + profileData?.path
-      : "/header/profile.svg",
+    // profileImage: profileData?.path ?  toAbsoluteUrl(profileData?.path) : "/header/profile.svg",
+    profileImage: profileData?.path ?  BASE_URL + profileData?.path : "/header/profile.svg",
     name: profileData?.name || "Hello, User",
   });
 
@@ -90,16 +105,11 @@ const Header = ({ profileName, profileImage }) => {
     }
   };
 
-  const LogOutUserFunction =async () => {
-    // dispatch(api.util.resetApiState());
-    if (typeof window !== 'undefined' && window.OneSignalInstance) {
-      await window.OneSignalInstance.User.PushSubscription.optOut();
-      // await window.OneSignalInstance.User.removeTag('userId'); 
-      console.log("User unsubscribed from push notifications");
-    }
-    // console.log("User logged out");
-    dispatch(logOut()); 
-    // router.push("/sign-in");
+  const LogOutUserFunction = () => {
+    console.log("User logged out");
+    dispatch(logOut()); // Clear redux state
+    dispatch(api.util.resetApiState())
+    router.push("/sign-in"); // Redirect to login
   };
 
   const handleProfile = () => {
@@ -144,7 +154,8 @@ const Header = ({ profileName, profileImage }) => {
   useEffect(() => {
     if (profileData) {
       const updatedUser = {
-        profileImage: "https://staging.portalteam.org" + profileData?.path,
+        // profileImage: profileData?.filepath ? toAbsoluteUrl(profileData?.filepath) : "/header/profile.svg",
+        profileImage: profileData?.filepath ? BASE_URL + profileData?.filepath : "/header/profile.svg",
         name: profileData?.name,
       };
       setUserData(updatedUser);
@@ -187,7 +198,7 @@ const Header = ({ profileName, profileImage }) => {
           data,
           feature: "referral",
           channel: "web",
-          $fallback_url: "https://www.hybridresearchcenter.com/",
+          $fallback_url: webAppUrl,
         };
 
         branchLib.link(linkData, (err, url) => {
@@ -340,7 +351,7 @@ const formatTime = (date) => {
   const handleSeenSingleNotification = async (id,orderId) => {
     try {
       const notification = notifications.find((item) => item.id === id);
-      console.log("notification",notification)
+      // console.log("notification",notification)
       if(notification?.status == "Viewed"){
         router.push(`/orders/${orderId}`);
         setIsShowNotifications(false)
@@ -356,30 +367,33 @@ const formatTime = (date) => {
         }
       }
       // const som = href={`/orders/${notification?.orderid}`}
-      console.log("notification",notification)
+      // console.log("notification",notification)
     } catch (error) {
       console.log("error",error)
     }
   }
 
 
-const apid="9d8e840d-8835-42f0-aaf9-3a4faf84e2e1"
-const safari_web_id= "web.onesignal.auto.41b6a3ea-cfe2-480b-805a-97ab17a018f3";
+
+
   return (
     <>
       <header className="bg-primary px-2 md:px-0 fixed w-full z-50">
+        <link rel="icon" href="/favicon.png" />
         <div
           className="flex items-center gap-4 justify-end px-8 text-white"
           style={{ height: "75px" }}
         >
-          <div>
-            <button
-              onClick={handleClick}
-              className="non bg-[#3BB537] p3 white px-2 py-2 md:px-4 md:py-3 rounded-md hover:bg-blue-500 transition duration-300"
-            >
-              Refer and Earn
-            </button>
-          </div>
+          {user?.isVerified && (
+            <div>
+              <button
+                onClick={handleClick}
+                className="non bg-[#3BB537] p3 white px-2 py-2 md:px-4 md:py-3 rounded-md hover:bg-blue-500 transition duration-300"
+              >
+                Refer and Earn
+              </button>
+            </div>
+          )}
 
           <div className="relative lg:w-1/3 flex items-center">
             <input

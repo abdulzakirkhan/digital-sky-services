@@ -139,38 +139,45 @@ const DashboardPage = () => {
   const { data: getToken = { result: {} } } = useGetTokenQuery();
   const dispatch = useDispatch();
 
-useEffect(() => {
-  if (getToken?.result?.token && user) {
-    dispatch(ChangeUser({ ...user, token: getToken?.result?.token }));
-  }
-}, [getToken]);
-
+  useEffect(() => {
+    if (getToken?.result?.token && user) {
+      dispatch(ChangeUser({ ...user, token: getToken?.result?.token }));
+    }
+  }, [getToken]);
 
   useEffect(() => {
     if (!getToken?.result?.token || !user) return;
 
     const setupOneSignalTags = async () => {
       try {
-        if (!window.OneSignalInstance) {
+        const OneSignal = window.OneSignalInstance;
+        if (!OneSignal) {
           console.log("OneSignalInstance is NOT ready yet.");
           return;
         }
 
-        console.log("OneSignalInstance is available. Setting up listener...");
+        console.log("OneSignalInstance is available.");
 
-        // Check current subscription status immediately
-        const currentSubscriptionId = window.OneSignalInstance.User.PushSubscription.id;
-        if (currentSubscriptionId) {
-          console.log("Already subscribed with ID:", currentSubscriptionId);
+        // Request notification permission from the user
+        const permission = await OneSignal.Notifications.requestPermission();
+        console.log("Notification permission:", permission);
+
+        // Check if subscribed
+        const isSubscribed = await OneSignal.User.PushSubscription.optedIn;
+        const subscriptionId = OneSignal.User.PushSubscription.id;
+
+        if (isSubscribed && subscriptionId) {
+          console.log("User is subscribed with ID:", subscriptionId);
           await addUserTag(user?.userid);
+        } else {
+          console.warn("User is NOT subscribed.");
         }
 
-        // Setup listener for future changes
-        window.OneSignalInstance.User.PushSubscription.addEventListener(
+        // Listen for future changes
+        OneSignal.User.PushSubscription.addEventListener(
           "change",
           async (subscriptionChange) => {
-            console.log("PushSubscription change event fired:", subscriptionChange);
-            
+            console.log("PushSubscription changed:", subscriptionChange);
             if (subscriptionChange.current.id) {
               await addUserTag(user?.userid);
             } else {
@@ -187,20 +194,20 @@ useEffect(() => {
       try {
         console.log("Attempting to add userId tag:", id);
 
-        if(!id){
+        if (!id) {
           return;
         }
 
         const tagValue = String(id).trim();
         await window.OneSignalInstance.User.addTag("userId", tagValue);
-        
+
         // Verify the tag was added
         const tags = await window.OneSignalInstance.User.getTags();
         console.log("Current OneSignal Tags:", tags);
-        
+
         if (!tags || tags.userId !== tagValue) {
           console.warn("Tag might not have been set correctly. Retrying...");
-          await new Promise(resolve => setTimeout(resolve, 1000));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
           await addUserTag(tagValue);
         }
       } catch (tagError) {
@@ -208,13 +215,12 @@ useEffect(() => {
       }
     };
 
-    if(user){
+    if (user) {
       setupOneSignalTags();
     }
-  }, [getToken, user,userId]);
-  
+  }, [getToken, user, userId]);
 
- 
+
 
   return (
     <section className={`mt-20`}>
@@ -284,7 +290,7 @@ useEffect(() => {
                       src={"/icons/home/filter.svg"}
                       width={12}
                       height={5}
-                      alt="" 
+                      alt=""
                     />
                     Filter
                   </motion.button>
